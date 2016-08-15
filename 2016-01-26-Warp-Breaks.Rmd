@@ -1,0 +1,250 @@
+---
+title: "Warp Breaks"
+author: "Mark Pratley"
+date: "26 January 2016"
+autosize: true
+output: 
+  slidy_presentation: 
+    self_contained: no
+--- 
+ 
+```{r, echo=F, warning=F, message=F}
+library(ggplot2)
+library(dplyr)
+library(knitr)
+source("../ggplot_themes.R")
+
+wb <- warpbreaks
+
+# tidy up for better graphing
+wb <- wb %>% 
+        rename(Breaks=breaks, Wool = wool, Tension=tension) %>% 
+        mutate(Tension = factor(Tension, labels = c("Low", "Medium", "High")))
+
+```
+
+## Warp Breaks
+
+This is a practice presentation using the [warpbreaks](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/warpbreaks.html) dataset.
+
+The warpbreaks dataset gives the number of breaks in Yarn during Weaving.
+
+It uses fixed lengths of yarn with two different types of wool and varying tensions.
+
+This presentation will investigate which type of wool is recommended for different tensions.
+
+
+## The Warpbreaks Dataset
+
+The Warpbreaks  dataset has 54 observations with 3 variables:
+
+* Breaks
+    + numeric -	The number of breaks
+
+* Wool
+    + factor - The type of wool (A or B)
+    
+* Tension
+    + factor - The level of tension (Low, Medium, High)
+    
+## Examining All Breaks
+
+```{r, echo=F}
+# For ggplot use a bin width of 8 
+
+# wb %>% 
+#   ggvis(x=~breaks) %>% 
+#   layer_histograms(width = input_slider(1, 35, step = 1, label = "Bin Width"), 
+#                    center = 10, 
+#                    fill := "#E74C3C") 
+
+ggplot(wb, aes(x=Breaks)) +
+      geom_histogram(binwidth=7, fill="#c0392b", alpha=0.75) +
+      fte_theme() + 
+      labs(title="All Breaks", x="# of Breaks", y="Count") +
+      scale_x_continuous(breaks=seq(0,80, by=5)) +
+      geom_hline(yintercept=0, size=0.4, color="black")
+```
+
+## Breaks Grouped by Tension
+
+```{r, echo=F}
+wb %>% 
+  ggplot(aes(x=Breaks, colour=Tension)) +
+    geom_density(size=1)
+
+```
+
+## Breaks Grouped by Tension
+
+```{r, echo=F}
+wb %>% 
+  ggplot(aes(x=Tension, y=Breaks, colour=Tension)) +
+    geom_boxplot(size=1.0) + 
+    fte_theme() + 
+    labs(x="Tension", y="# No Breaks") +
+    geom_hline(yintercept=0, size=0.4, color="black")
+
+```
+
+
+<!-- ## Breaks Grouped by Tension -->
+
+<!-- ### BoxPlot -->
+<!-- ```{r, echo=F, warning=F, message=FALSE} -->
+<!-- # Boxplot with hover values -->
+<!-- # all_values <- function(x) { -->
+<!-- #   if(is.null(x)) return(NULL) -->
+<!-- #   paste0(names(x), ": ", format(x), collapse = "<br />") -->
+<!-- # } -->
+<!-- # wb %>%  -->
+<!-- #     ggvis(x=~Tension, y=~Breaks, fill=~Tension ) %>%  -->
+<!-- #     layer_boxplots() %>%  -->
+<!-- #     add_tooltip(all_values, "hover") %>%  -->
+<!-- #     hide_legend("fill") -->
+
+<!-- # Replace with ggplot -->
+<!-- wb %>%  -->
+<!--   ggplot(aes(x=Tension, y=Breaks, fill=Tension)) + geom_boxplot() -->
+<!-- ``` -->
+
+## Tension Conclusions
+
+```{r, echo=F, warning=F, message=FALSE}
+wb %>% 
+  group_by(Tension) %>% 
+  summarise(Num=n(), 
+            min=min(Breaks), 
+            max=max(Breaks), 
+            mean=mean(Breaks),
+            median=median(Breaks),
+            sd=sd(Breaks)
+            ) %>% 
+  as.data.frame() %>% 
+  kable()
+```
+
+From the graphs and table statistics:
+
+Higher tension means less breaks.
+
+Low tension gives more breaks and has higher unpredictability.
+
+## Comparing Breaks with Wool Type
+
+```{r, echo=F}
+wb %>% 
+  ggplot(aes(x=Breaks, colour=Wool)) +
+    geom_density(size=1) +
+    fte_theme() + 
+    labs(x="# No Breaks", y="Density") +
+    theme(legend.justification=c(0,0), legend.position=c(0.6,0.6))
+    
+
+```
+
+## Comparing Breaks with Wool Type
+
+```{r, echo=F}
+wb %>% 
+  ggplot(aes(x=Wool, y=Breaks, colour=Wool)) +
+    geom_boxplot(size=1) +
+    fte_theme() + 
+    labs(x="Wool Type", y="# No Breaks")
+
+```
+
+## Wool Conclusions
+
+```{r, echo=F, warning=F, message=FALSE}
+wb %>% 
+  group_by(Wool) %>% 
+  summarise(Num=n(), 
+            min=min(Breaks), 
+            max=max(Breaks), 
+            mean=mean(Breaks),
+            median=median(Breaks),
+            sd=sd(Breaks)
+            ) %>% 
+  as.data.frame() %>% 
+  kable()
+```
+
+From the statisitics table and the graphs, we can see that overall wool type B has less breaks with lower mean and median values.
+
+Whilst wool type A has a larger standard deviation, which along with a lower minimum and higher maximum shows that wool A has much higher variation than type B.
+
+It is interesting to note that the multimodal appearance (multiple peaks) on the density plot may imply that the different wool types have differing sensitivities to tension. We will explore this next.
+
+## Comparing Breaks with Wool Type and Tension
+
+```{r, echo=F}
+# Group and colour by Wool Type & Tension
+wb %>% 
+  group_by(Group=interaction(Wool, Tension)) %>% 
+  ggplot(aes(x=Breaks, group=Group, colour=Tension)) +
+    geom_density(size=1, aes(linetype=Wool))+ #, color=sex))+
+    fte_theme() + 
+    labs(x="# No Breaks", y = "Density") +
+    theme(legend.justification=c(0,0), legend.position=c(0.5,0.4)) +
+    ggtitle("Number of Warp Breaks with Wool Type and Tension")
+
+```
+
+## Comparing Breaks with Wool Type and Tension
+
+```{r, echo=F}
+wb %>% 
+  ggplot(aes(x=Tension, y=Breaks, colour=Wool)) +
+    geom_boxplot(size=1, 
+                 position = position_dodge(width = 0.5), 
+                 width = 0.5, 
+                 alpha = 0.5
+                 )
+
+```
+
+## Mean Warp Breaks by Tension and Wool
+```{r, echo=F}
+wb %>% 
+    group_by(Tension, Wool) %>% 
+    summarise(Num=n(), 
+              min=min(Breaks), 
+              max=max(Breaks), 
+              mean=mean(Breaks),
+              median=median(Breaks),
+              sd=sd(Breaks)
+    ) %>% 
+    as.data.frame() %>% 
+    ggplot(aes(x=Tension, y=mean, fill=Wool)) +
+        geom_bar(position = "dodge", stat="identity") +
+        labs(y = "Mean Warp Breaks")
+
+```
+
+## Final Table of Statistics for Breaks
+```{r, echo=F}
+wb %>% 
+    group_by(Tension, Wool) %>% 
+    summarise(Num=n(), 
+              min=min(Breaks), 
+              max=max(Breaks), 
+              mean=mean(Breaks),
+              median=median(Breaks),
+              sd=sd(Breaks)
+    ) %>% 
+    as.data.frame() %>% 
+    kable()
+```
+
+Generally wool B is better, with the best combination being Wool B with high tension.
+
+The worst combination is Wool A with low tension, although Wool A is better if you exclusively use medium tension.
+
+## Conclusions
+
+If you are only using medium tension then you should choose wool A.
+
+Otherwise, always choose wool B.
+
+If you can choose both wool and tension then you should choose Wool B with High Tension.
